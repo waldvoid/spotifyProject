@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Playlist Recommendation</title>
+</head>
+<body>
+
+<h2>Enter Playlist URL</h2>
+
+<form method="post" action="{% url 'recommend_playlist' %}">
+    {% csrf_token %}
+    <label for="playlist_url">Playlist URL:</label>
+    <input type="text" id="playlist_url" name="playlist_url" required>
+    <br>
+    <button type="submit">Recommend Playlist</button>
+</form>
+
+</body>
+</html>
