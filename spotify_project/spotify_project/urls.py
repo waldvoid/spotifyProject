@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path
 import views
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('recommend_playlist_form/', views.recommend_playlist, name='recommend_playlist_form'),
