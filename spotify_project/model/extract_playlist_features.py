@@ -22,8 +22,8 @@ def extract_playlist_features(user_playlist_url):
     import sys
     import statistics
 
-    SPOTIPY_CLIENT_ID = 'ff34a979c12f4b9db36eeb34edcef3ce'
-    SPOTIPY_CLIENT_SECRET = 'f5df5d6fbfe34a6fb59ac82e28e9dc41'
+    SPOTIPY_CLIENT_ID = ''
+    SPOTIPY_CLIENT_SECRET = ''
 
     client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
     spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
