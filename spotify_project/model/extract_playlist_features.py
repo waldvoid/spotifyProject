@@ -1,11 +1,7 @@
-def extract_playlist_features(user_playlist_url):
+def extract_playlist_features(user_playlist_url, sp):
     import pandas as pd
     import numpy as np
-    import requests
-    from bs4 import BeautifulSoup
-    from zipfile import ZipFile 
     from sklearn import set_config
-    from sklearn.cluster import KMeans
     set_config(print_changed_only=False, display=None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
@@ -14,25 +10,13 @@ def extract_playlist_features(user_playlist_url):
     sns.set_style('darkgrid')
     import warnings
     warnings.filterwarnings('ignore')
-    from sklearn.metrics.pairwise import cosine_similarity
-    from scipy import sparse
-    import spotipy
-    from spotipy.oauth2 import SpotifyClientCredentials
-    import os
-    import sys
-    import statistics
 
-    SPOTIPY_CLIENT_ID = ''
-    SPOTIPY_CLIENT_SECRET = ''
-
-    client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
-    spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
     # Playlist ID'yi URL'den çıkar
     playlist_id = user_playlist_url.split('/')[-1].split('?')[0]
 
     # Playlistteki şarkıları çek
-    results = spotify.playlist(playlist_id)
+    results = sp.playlist(playlist_id)
 
     # Şarkı bilgilerini sakla
     song_ids = []
@@ -45,21 +29,19 @@ def extract_playlist_features(user_playlist_url):
         popularities.append(track['popularity'])
 
     # Şarkı özelliklerini çek
-    attributes = spotify.audio_features(tracks=song_ids)
+    attributes = sp.audio_features(tracks=song_ids)
 
-    # Şarkı popülerliği ve çıkış tarihlerini özelliklere ekle
+    # Şarkı enerjisi ve çıkış tarihlerini özelliklere ekle
     for i in range(len(attributes)):
-        attributes[i]['name'] = results['tracks']['items'][i]['track']['name']
-        attributes[i]['artists'] = results['tracks']['items'][i]['track']['artists'][0]['name']
-        attributes[i]['popularity'] = popularities[i]
         attributes[i]['release_date'] = release_dates[i]
+        attributes[i]['popularity'] = popularities[i]
 
 
     # Tüm özelliklerden bir DataFrame oluştur
     playlist_df = pd.DataFrame(attributes)
 
     # Gereksiz feature'ları sil
-    playlist_df.drop(['type', 'id', 'uri', 'track_href', 'analysis_url', 'time_signature'], axis=1, inplace=True)
+    playlist_df.drop(['type', 'id', 'track_href', 'analysis_url', 'time_signature'], axis=1, inplace=True)
 
     # release_date'i datetime'a çevir
     playlist_df['release_date'] = pd.to_datetime(playlist_df['release_date'], format='ISO8601')
@@ -82,15 +64,14 @@ def extract_playlist_features(user_playlist_url):
     playlist_df['key_mode'] = playlist_df['letter_keys'] + " " + playlist_df['modes']
 
     # eşik değer ortalamasından 5 aşağı - yukarı standart sapması uygula
-    for feat in playlist_df.columns:
-        try:
-            abv_5_std = playlist_df[feat].mean()+ 5* playlist_df[feat].std()
-            below_5_std = playlist_df[feat].mean()- 5* playlist_df[feat].std()
-            conditions = [playlist_df[feat]>abv_5_std, playlist_df[feat]<below_5_std]
-            choices = [abv_5_std, below_5_std]
-            playlist_df[feat] = np.select(conditions, choices, playlist_df[feat])
-        except:
-            pass
+    numerical_cols = playlist_df.select_dtypes(include=[np.number]).columns
+    for feat in numerical_cols:
+        abv_5_std = playlist_df[feat].mean()+ 5* playlist_df[feat].std()
+        below_5_std = playlist_df[feat].mean()- 5* playlist_df[feat].std()
+        conditions = [playlist_df[feat]>abv_5_std, playlist_df[feat]<below_5_std]
+        choices = [abv_5_std, below_5_std]
+        playlist_df[feat] = np.select(conditions, choices, playlist_df[feat])
+
 
     # 0-1 arasında standartlaştır
     playlist_df['scaled_speech'] = (playlist_df['speechiness'] - min(playlist_df['speechiness'])) / (max(playlist_df['speechiness']) - min(playlist_df['speechiness']))
@@ -98,9 +79,12 @@ def extract_playlist_features(user_playlist_url):
     playlist_df['scaled_loudness'] = (playlist_df['loudness'] - min(playlist_df['loudness'])) / (max(playlist_df['loudness']) - min(playlist_df['loudness']))
     playlist_df['scaled_instrumentalness'] = (playlist_df['instrumentalness'] - min(playlist_df['instrumentalness'])) / (max(playlist_df['instrumentalness']) - min(playlist_df['instrumentalness']))
     playlist_df['scaled_tempo'] = (playlist_df['tempo'] - min(playlist_df['tempo'])) / (max(playlist_df['tempo']) - min(playlist_df['tempo']))
-    playlist_df['scaled_pop'] = (playlist_df['popularity'] - min(playlist_df['popularity'])) / (max(playlist_df['popularity']) - min(playlist_df['popularity']))
+    playlist_df['scaled_energy'] = (playlist_df['energy'] - min(playlist_df['energy'])) / (max(playlist_df['energy']) - min(playlist_df['energy']))
+    playlist_df['scaled_danceability'] = (playlist_df['danceability'] - min(playlist_df['danceability'])) / (max(playlist_df['danceability']) - min(playlist_df['danceability']))
+    playlist_df['scaled_popularity'] = (playlist_df['popularity'] - min(playlist_df['popularity'])) / (max(playlist_df['popularity']) - min(playlist_df['popularity']))
+
     
-    desired_columns = ['instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'valence', 'name', 'artists', 'popularity', 'release_date', 'year', 'decade', 'letter_keys', 'modes', 'key_mode', 'scaled_speech', 'scaled_instrumentalness', 'scaled_duration', 'scaled_loudness', 'scaled_tempo', 'scaled_pop']
+    desired_columns = ['uri', 'instrumentalness', 'popularity','danceability', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'valence', 'energy', 'release_date', 'year', 'decade', 'letter_keys', 'modes', 'key_mode', 'scaled_speech', 'scaled_instrumentalness', 'scaled_duration', 'scaled_loudness', 'scaled_tempo', 'scaled_energy', 'scaled_danceability', 'scaled_popularity']
 
     # Sütunları yeniden sırala
     playlist_df = playlist_df[desired_columns]
@@ -119,7 +103,7 @@ def extract_playlist_features(user_playlist_url):
         if decade not in playlist_df.columns:
             playlist_df[decade] = False
 
-    desired_columns = ['id', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'valence', 'name', 'artists', 'popularity', 'release_date',  'year', 'decade', 'letter_keys', 'modes', 'key_mode', 'scaled_speech', 'scaled_instrumentalness', 'scaled_duration', 'scaled_loudness', 'scaled_tempo', 'scaled_pop', 'A Minor', 'Ab Major', 'Ab Minor', 'B Major', 'B Minor', 'Bb Major', 'Bb Minor', 'C Major', 'C Minor', 'D Major', 'D Minor', 'Db Major', 'Db Minor', 'E Major', 'E Minor', 'Eb Major', 'Eb Minor', 'F Major', 'F Minor', 'F# Major', 'F# Minor', 'G Major', 'G Minor','1960', '1970', '1980', '1990', '2000', '2010', '2020']
+    desired_columns = ['id', 'uri', 'popularity', 'instrumentalness', 'key', 'liveness', 'danceability', 'loudness', 'mode', 'speechiness', 'tempo', 'valence', 'energy', 'release_date',  'year', 'decade', 'letter_keys', 'modes', 'key_mode', 'scaled_speech', 'scaled_danceability', 'scaled_instrumentalness', 'scaled_duration', 'scaled_loudness', 'scaled_tempo', 'scaled_energy', 'scaled_popularity', 'A Minor', 'Ab Major', 'Ab Minor', 'B Major', 'B Minor', 'Bb Major', 'Bb Minor', 'C Major', 'C Minor', 'D Major', 'D Minor', 'Db Major', 'Db Minor', 'E Major', 'E Minor', 'Eb Major', 'Eb Minor', 'F Major', 'F Minor', 'F# Major', 'F# Minor', 'G Major', 'G Minor','1960', '1970', '1980', '1990', '2000', '2010', '2020']
     playlist_df = playlist_df.reindex(columns=desired_columns).fillna(False)
     
     # Sonuçları bir Excel dosyasına yaz

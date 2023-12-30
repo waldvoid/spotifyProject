@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from model.generator import generate_recommendations
+
+from model.uri_to_playlist import get_full_songs
 
 def recommend_playlist(request):
     if request.method == 'POST':
@@ -7,7 +8,7 @@ def recommend_playlist(request):
         playlist_url = request.POST.get('playlist_url', '')
 
         # Algoritmanızı kullanarak öneri playlistini oluşturun (bu kısmı kendi algoritmanıza göre özelleştirin)
-        recommend_playlist = generate_recommendations(playlist_url)
+        recommend_playlist = get_full_songs(playlist_url)
 
         # Öneri playlistini HTML şablonuna gönderin
         return render(request, 'recommend_playlist.html', {'recommend_playlist': recommend_playlist, 'playlist_url': playlist_url})

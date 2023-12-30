@@ -1,0 +1,7 @@
+pandas
+numpy
+scikit-learn
+spotipy
+python-dotenv
+django
+SpotifyClientCredentials

@@ -58,20 +58,32 @@
         {% if recommend_playlist.empty %}
           <p>No recommended playlist found.</p>
         {% else %}
-          <table class="form-container">
+        <table class="form-container">
+          <tr>
+            {% for col in recommend_playlist.columns %}
+              <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+          {% for index, row in recommend_playlist.iterrows %}
             <tr>
-              {% for col in recommend_playlist.columns %}
-                <th>{{ col }}</th>
+              {% for cell in row %}
+                {% if forloop.last %}
+                  <td>
+                    <a href="{{ cell }}">
+                      <div class="play-button flex items-center justify-center w-8 h-8 rounded-full bg-green-600 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
+                        </svg>
+                      </div>
+                    </a>
+                  </td>
+                {% else %}
+                  <td>{{ cell }}</td>
+                {% endif %}
               {% endfor %}
             </tr>
-            {% for index, row in recommend_playlist.iterrows %}
-              <tr>
-                {% for cell in row %}
-                  <td>{{ cell }}</td>
-                {% endfor %}
-              </tr>
-            {% endfor %}
-          </table>
+          {% endfor %}
+        </table>
         {% endif %}
       </div>
     </div>

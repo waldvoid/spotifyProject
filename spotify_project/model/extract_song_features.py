@@ -1,27 +1,30 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import re
+from dotenv import load_dotenv
+import os
 
-SPOTIPY_CLIENT_ID = 'ff34a979c12f4b9db36eeb34edcef3ce'
-SPOTIPY_CLIENT_SECRET = 'f5df5d6fbfe34a6fb59ac82e28e9dc41'
 
 
 
 def extract_song_features(song):
+    load_dotenv()
+    SPOTIPY_CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
+    SPOTIPY_CLIENT_SECRET = os.getenv('SPOTIPY_CLIENT_SECRET')
     client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
     sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
     # Audio features
     features = sp.audio_features(song)[0]
 
-    # Artist of the track, for genres and popularity
+    # Artist of the track, for genres and energy
     artist = sp.track(song)["artists"][0]["id"]
     artist_name = sp.artist(artist)["name"]
-    artist_pop = sp.artist(artist)["popularity"]
+    artist_pop = sp.artist(artist)["energy"]
     artist_genres = sp.artist(artist)["genres"]
 
-    # Track popularity
-    track_pop = sp.track(song)["popularity"]
+    # Track energy
+    track_pop = sp.track(song)["energy"]
     track_name = sp.track(song)["name"]
     track_id = sp.track(song)["id"]
 
