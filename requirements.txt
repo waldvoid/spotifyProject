@@ -5,3 +5,7 @@ spotipy
 python-dotenv
 django
 SpotifyClientCredentials
+yellowbrick
+plotly
+matplotlib
+seaborn

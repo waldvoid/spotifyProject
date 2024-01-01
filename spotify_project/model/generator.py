@@ -3,6 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from model.extract_playlist_features import extract_playlist_features
+from yellowbrick.cluster import KElbowVisualizer
 
 def generate_recommendations(playlist_url, sp):
 
@@ -18,20 +19,20 @@ def generate_recommendations(playlist_url, sp):
     # Kullanıcının çalma listesini al ve özelliklerini çıkar
     playlist_df = extract_playlist_features(playlist_url, sp)
 
-    # gereksiz sütunları çalma listesinden çıkar
+    # Gereksiz sütunları çalma listesinden çıkar
     playlist_id = playlist_df['id']
     playlist_uri = playlist_df['uri']
     playlist_df = playlist_df.drop(['release_date', 'uri', 'id', 'mode', 'danceability',  'speechiness', 'letter_keys', 'year',  'decade', 'modes', 'key_mode', 'instrumentalness', 'key', 'liveness', 'loudness', 'tempo', 'energy', 'popularity'], axis=1)
 
     # Float özelliklere ağırlık atama
     float_features = {
-        'valence': 1,
+        'valence': 1.1,
         'scaled_speech': 1,
         'scaled_duration': .8,
-        'scaled_loudness': 1,
+        'scaled_loudness': 1.1,
         'scaled_tempo': 1,
-        'scaled_energy': 1,
-        'scaled_instrumentalness': 1,
+        'scaled_energy': 1.1,
+        'scaled_instrumentalness': .9,
         'scaled_danceability': 1,
         'scaled_popularity': 1.1,
     }
@@ -65,14 +66,9 @@ def generate_recommendations(playlist_url, sp):
     print('data scaled')
 
     # Optimal küme sayısını belirle
-    wcss = []
-    for i in range(1, 11):
-        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(labels_df_scaled)
-        wcss.append(kmeans.inertia_)
-
-    # Elbow noktasını bul
-    n_clusters = wcss.index(min(wcss)) + 1
+    visualizer = KElbowVisualizer(KMeans(init='k-means++', max_iter = 300, n_init = 10, random_state=0), k=(1,11), timings=False)
+    visualizer.fit(labels_df)
+    n_clusters = visualizer.elbow_value_
 
     # KMeans modelini eğit
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
